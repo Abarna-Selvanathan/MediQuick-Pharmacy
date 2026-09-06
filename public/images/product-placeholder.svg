@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <rect width="800" height="500" fill="#E8EEF3"/>
+  <rect x="330" y="160" width="140" height="180" rx="16" fill="#163A59"/>
+  <rect x="385" y="185" width="30" height="130" fill="#FFFFFF"/>
+  <rect x="355" y="235" width="90" height="30" fill="#FFFFFF"/>
+  <text x="400" y="380" text-anchor="middle" font-family="Segoe UI, sans-serif" font-size="22" fill="#0B1F33">MediQuick Pharmacy</text>
+</svg>
