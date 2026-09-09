@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AdminGuard from "@/components/AdminGuard";
 import AdminNav from "@/components/AdminNav";
+import { useToast } from "@/components/ToastProvider";
 import "./inventory.css";
 
 function formatPrice(value) {
@@ -16,6 +17,7 @@ function stockLabel(stock) {
 }
 
 export default function AdminInventoryPage() {
+  const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -47,9 +49,12 @@ export default function AdminInventoryPage() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || "Unable to update stock.");
+        const msg = data.message || "Unable to update stock.";
+        addToast(msg, "error");
+        throw new Error(msg);
       }
       setMessage(data.message);
+      addToast(data.message || "Stock updated.", "success");
       await loadProducts();
     } catch (saveError) {
       setError(saveError.message);
@@ -60,9 +65,9 @@ export default function AdminInventoryPage() {
 
   return (
     <AdminGuard>
-      <section className="section">
+      <section className="section admin-section">
         <div className="container">
-          <h1>Inventory</h1>
+          <div className="admin-header"><div><p className="eyebrow">Stock control</p><h1>Inventory</h1></div><p>Keep product quantities and availability status current.</p></div>
           <AdminNav current="/admin/inventory" />
           {message && <p className="status-message success">{message}</p>}
           {error && <p className="status-message error">{error}</p>}

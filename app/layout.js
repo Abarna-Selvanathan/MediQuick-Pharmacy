@@ -3,6 +3,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { CartProvider } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { ToastProvider } from "@/components/ToastProvider";
 
 export const metadata = {
   title: "MediQuick Pharmacy",
@@ -16,9 +17,11 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           <CartProvider>
-            <Navbar />
-            <main className="page-content">{children}</main>
-            <Footer />
+            <ToastProvider>
+              <Navbar />
+              <main className="page-content">{children}</main>
+              <Footer />
+            </ToastProvider>
           </CartProvider>
         </AuthProvider>
       </body>

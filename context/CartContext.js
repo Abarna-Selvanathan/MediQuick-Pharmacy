@@ -1,34 +1,47 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
 
 const CartContext = createContext(null);
-const STORAGE_KEY = "mediquick-cart";
+const STORAGE_PREFIX = "mediquick-cart";
+const GUEST_STORAGE_KEY = "mediquick-cart-guest";
+
+function getStorageKey(user) {
+  return user?.id ? `${STORAGE_PREFIX}-${user.id}` : GUEST_STORAGE_KEY;
+}
 
 export function CartProvider({ children }) {
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
+  const [cartStorageKey, setCartStorageKey] = useState(getStorageKey(user));
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    const key = getStorageKey(user);
+    setCartStorageKey(key);
+
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setItems(JSON.parse(stored));
-      }
+      const stored = localStorage.getItem(key);
+      setItems(stored ? JSON.parse(stored) : []);
     } catch {
       setItems([]);
     } finally {
       setHydrated(true);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!hydrated) {
       return;
     }
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }, [hydrated, items]);
+    try {
+      localStorage.setItem(cartStorageKey, JSON.stringify(items));
+    } catch {
+      // keep cart state in memory only when storage is unavailable
+    }
+  }, [hydrated, cartStorageKey, items]);
 
   function addItem(product, quantity = 1) {
     if (product.prescriptionRequired) {
@@ -96,9 +109,14 @@ export function CartProvider({ children }) {
     setItems((current) => current.filter((item) => item.productId !== productId));
   }
 
-  function clearCart() {
+  const clearCart = useCallback(() => {
     setItems([]);
-  }
+    try {
+      localStorage.removeItem(cartStorageKey);
+    } catch {
+      // storage fallback
+    }
+  }, [cartStorageKey]);
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -113,7 +131,7 @@ export function CartProvider({ children }) {
       subtotal,
       itemCount
     }),
-    [items, subtotal, itemCount]
+    [items, subtotal, itemCount, clearCart]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

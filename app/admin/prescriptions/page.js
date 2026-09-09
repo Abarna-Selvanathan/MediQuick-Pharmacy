@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import AdminGuard from "@/components/AdminGuard";
 import AdminNav from "@/components/AdminNav";
+import { useToast } from "@/components/ToastProvider";
 import "./prescriptions.css";
 
 export default function AdminPrescriptionsPage() {
+  const { addToast } = useToast();
   const [prescriptions, setPrescriptions] = useState([]);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -26,10 +28,6 @@ export default function AdminPrescriptionsPage() {
   }, []);
 
   async function updateStatus(id, status) {
-    const confirmed = window.confirm(`Mark this prescription as ${status}?`);
-    if (!confirmed) {
-      return;
-    }
     setUpdatingId(id);
     setError("");
     setMessage("");
@@ -41,9 +39,12 @@ export default function AdminPrescriptionsPage() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.message || "Unable to update prescription.");
+        const msg = data.message || "Unable to update prescription.";
+        addToast(msg, "error");
+        throw new Error(msg);
       }
       setMessage(data.message);
+      addToast(data.message || `Prescription marked ${status}.`, "success");
       await loadPrescriptions();
     } catch (updateError) {
       setError(updateError.message);
@@ -54,9 +55,9 @@ export default function AdminPrescriptionsPage() {
 
   return (
     <AdminGuard>
-      <section className="section">
+      <section className="section admin-section">
         <div className="container">
-          <h1>Prescriptions</h1>
+          <div className="admin-header"><div><p className="eyebrow">Clinical review</p><h1>Prescriptions</h1></div><p>Review uploaded prescription files and record their current status.</p></div>
           <AdminNav current="/admin/prescriptions" />
           {message && <p className="status-message success">{message}</p>}
           {error && <p className="status-message error">{error}</p>}

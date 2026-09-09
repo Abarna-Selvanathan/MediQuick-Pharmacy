@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import AdminGuard from "@/components/AdminGuard";
 import AdminNav from "@/components/AdminNav";
+import { useToast } from "@/components/ToastProvider";
 import "./products.css";
 
 function formatPrice(value) {
@@ -22,6 +23,7 @@ const emptyForm = {
 };
 
 export default function AdminProductsPage() {
+  const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState("");
@@ -91,35 +93,38 @@ export default function AdminProductsPage() {
         throw new Error(data.message || "Unable to save product.");
       }
       setMessage(data.message);
+      addToast(data.message || "Product saved successfully.", "success");
       setForm(emptyForm);
       setEditingId("");
       await loadProducts();
     } catch (submitError) {
-      setError(submitError.message);
+      const msg = submitError.message || "Unable to save product.";
+      setError(msg);
+      addToast(msg, "error");
     } finally {
       setSubmitting(false);
     }
   }
 
   async function deleteProduct(id) {
-    if (!window.confirm("Delete this product?")) {
-      return;
-    }
     const response = await fetch(`/api/products/${id}`, { method: "DELETE" });
     const data = await response.json();
     if (!response.ok) {
-      setError(data.message || "Unable to delete product.");
+      const msg = data.message || "Unable to delete product.";
+      setError(msg);
+      addToast(msg, "error");
       return;
     }
     setMessage(data.message);
+    addToast(data.message || "Product deleted successfully.", "success");
     await loadProducts();
   }
 
   return (
     <AdminGuard>
-      <section className="section">
+      <section className="section admin-section">
         <div className="container">
-          <h1>Products</h1>
+          <div className="admin-header"><div><p className="eyebrow">Catalogue management</p><h1>Products</h1></div><p>Add, edit, and remove products while keeping pricing and prescription settings accurate.</p></div>
           <AdminNav current="/admin/products" />
           {message && <p className="status-message success">{message}</p>}
           {error && <p className="status-message error">{error}</p>}
@@ -157,8 +162,8 @@ export default function AdminProductsPage() {
               <label htmlFor="image">Product image</label>
               <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={updateField} />
             </div>
-            <div className="field">
-              <label htmlFor="prescriptionRequired">
+            <div className="field checkbox-row">
+              <label className="checkbox-inline" htmlFor="prescriptionRequired">
                 <input
                   id="prescriptionRequired"
                   name="prescriptionRequired"
@@ -166,8 +171,9 @@ export default function AdminProductsPage() {
                   checked={form.prescriptionRequired}
                   onChange={updateField}
                 />
-                Prescription required
+                <span>Prescription required</span>
               </label>
+              <small className="checkbox-help">Customers must provide a prescription before purchasing this medicine.</small>
             </div>
             <button className="btn btn-primary" type="submit" disabled={submitting}>
               {submitting ? "Saving..." : editingId ? "Update product" : "Add product"}

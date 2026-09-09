@@ -30,7 +30,12 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Preserve the existing logout flow even if the request fails.
+    }
+
     setUser(null);
     router.push("/");
     router.refresh();

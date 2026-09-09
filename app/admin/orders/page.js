@@ -51,9 +51,9 @@ export default function AdminOrdersPage() {
 
   return (
     <AdminGuard>
-      <section className="section">
+      <section className="section admin-section">
         <div className="container">
-          <h1>Orders</h1>
+          <div className="admin-header"><div><p className="eyebrow">Order management</p><h1>Orders</h1></div><p>Track customer orders and update their delivery progress.</p></div>
           <AdminNav current="/admin/orders" />
           {message && <p className="status-message success">{message}</p>}
           {error && <p className="status-message error">{error}</p>}

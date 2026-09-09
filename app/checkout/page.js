@@ -4,25 +4,21 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { useToast } from "@/components/ToastProvider";
 import "./checkout.css";
 
 const DELIVERY_FEE = 3.5;
 
 function formatPrice(value) {
-  return `LKR ${new Intl.NumberFormat("en-LK", { maximumFractionDigits: 2 }).format(Number(value))}`;
+  return "LKR " + new Intl.NumberFormat("en-LK", { maximumFractionDigits: 2 }).format(Number(value));
 }
 
 export default function CheckoutPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { items, subtotal, clearCart } = useCart();
-  const [form, setForm] = useState({
-    fullName: "",
-    phone: "",
-    address: "",
-    city: "",
-    postalCode: ""
-  });
+  const { addToast } = useToast();
+  const [form, setForm] = useState({ fullName: "", phone: "", address: "", city: "", postalCode: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -42,108 +38,65 @@ export default function CheckoutPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity
-          })),
+          items: items.map((item) => ({ productId: item.productId, quantity: item.quantity })),
           deliveryDetails: form
         })
       });
       const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.message || "Unable to place this order.");
-      }
+      if (!response.ok) throw new Error(data.message || "Unable to place this order.");
       clearCart();
       setSuccess(data.message);
-      setTimeout(() => router.push("/"), 1800);
+      addToast("Order placed successfully.", "success");
+      setTimeout(() => router.push("/orders"), 1800);
     } catch (submitError) {
-      setError(submitError.message || "Unable to place this order.");
+      const msg = submitError.message || "Unable to place this order.";
+      setError(msg);
+      addToast(msg, "error");
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (loading) {
-    return (
-      <section className="section">
-        <div className="container">
-          <p className="status-message">Loading checkout...</p>
-        </div>
-      </section>
-    );
-  }
+  if (loading) return <section className="section"><div className="container"><p className="status-message">Loading checkout...</p></div></section>;
 
   if (!user) {
-    return (
-      <section className="section">
-        <div className="container">
-          <p className="status-message error">Please log in before checking out.</p>
-        </div>
-      </section>
-    );
+    return <section className="section"><div className="container"><div className="empty-state"><h2>Please log in before checking out.</h2><p>Your cart is saved in this browser, but checkout requires an account.</p><a className="btn btn-primary" href="/login">Login</a></div></div></section>;
   }
 
   if (items.length === 0 && !success) {
-    return (
-      <section className="section">
-        <div className="container">
-          <p className="status-message">Your cart is empty.</p>
-        </div>
-      </section>
-    );
+    return <section className="section"><div className="container"><div className="empty-state"><h2>Your cart is empty.</h2><p>Add medicines or pharmacy products before starting checkout.</p><a className="btn btn-primary" href="/medicines">Browse Medicines</a></div></div></section>;
   }
 
   const total = subtotal + DELIVERY_FEE;
 
   return (
-    <section className="section">
+    <section className="section checkout-page">
       <div className="container checkout-grid">
         <form className="form-card" onSubmit={handleSubmit}>
+          <div className="page-title-actions">
+            <button className="btn btn-secondary btn-small back-button" type="button" onClick={() => router.back()}>← Back</button>
+          </div>
+          <p className="eyebrow">Secure checkout</p>
           <h1>Checkout</h1>
           {error && <p className="status-message error">{error}</p>}
           {success && <p className="status-message success">{success}</p>}
           <h2>Delivery information</h2>
-          <div className="field">
-            <label htmlFor="fullName">Full name</label>
-            <input id="fullName" name="fullName" value={form.fullName} onChange={updateField} required />
+          <div className="field"><label htmlFor="fullName">Full name</label><input id="fullName" name="fullName" value={form.fullName} onChange={updateField} required /></div>
+          <div className="field"><label htmlFor="phone">Phone number</label><input id="phone" name="phone" placeholder="+94 XX XXX XXXX" value={form.phone} onChange={updateField} required /></div>
+          <div className="field"><label htmlFor="address">Delivery address</label><input id="address" name="address" value={form.address} onChange={updateField} required /></div>
+          <div className="form-row">
+            <div className="field"><label htmlFor="city">City</label><input id="city" name="city" value={form.city} onChange={updateField} required /></div>
+            <div className="field"><label htmlFor="postalCode">Postal code</label><input id="postalCode" name="postalCode" value={form.postalCode} onChange={updateField} required /></div>
           </div>
-          <div className="field">
-            <label htmlFor="phone">Phone number</label>
-            <input id="phone" name="phone" value={form.phone} onChange={updateField} required />
-          </div>
-          <div className="field">
-            <label htmlFor="address">Address</label>
-            <input id="address" name="address" value={form.address} onChange={updateField} required />
-          </div>
-          <div className="field">
-            <label htmlFor="city">City</label>
-            <input id="city" name="city" value={form.city} onChange={updateField} required />
-          </div>
-          <div className="field">
-            <label htmlFor="postalCode">Postal code</label>
-            <input id="postalCode" name="postalCode" value={form.postalCode} onChange={updateField} required />
-          </div>
-          <div className="notice">
-            <h3>Demo payment</h3>
-            <p>
-              This is a test checkout. No card details are collected and no real
-              payment is processed.
-            </p>
-          </div>
-          <button className="btn btn-primary" type="submit" disabled={submitting || Boolean(success)}>
-            {submitting ? "Placing order..." : "Place Order"}
-          </button>
+          <div className="notice"><h3>Demo payment</h3><p>This is a test checkout. No card details are collected and no real payment is processed.</p></div>
+          <button className="btn btn-primary" type="submit" disabled={submitting || Boolean(success)}>{submitting ? "Placing order..." : "Place Order"}</button>
         </form>
-        <aside className="summary-card">
+        <aside className="summary-card sticky-summary">
           <h2>Order summary</h2>
-          {items.map((item) => (
-            <p key={item.productId}>
-              {item.name} x {item.quantity} - {formatPrice(item.price * item.quantity)}
-            </p>
-          ))}
-          <p>Subtotal: {formatPrice(subtotal)}</p>
-          <p>Delivery fee: {formatPrice(DELIVERY_FEE)}</p>
-          <p className="price">Final total: {formatPrice(total)}</p>
+          {items.map((item) => <div className="summary-line" key={item.productId}><span>{item.name} x {item.quantity}</span><strong>{formatPrice(item.price * item.quantity)}</strong></div>)}
+          <div className="summary-line"><span>Subtotal</span><strong>{formatPrice(subtotal)}</strong></div>
+          <div className="summary-line"><span>Delivery fee</span><strong>{formatPrice(DELIVERY_FEE)}</strong></div>
+          <p className="price final-total">Final total: {formatPrice(total)}</p>
         </aside>
       </div>
     </section>
